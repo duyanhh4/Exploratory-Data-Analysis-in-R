@@ -1,0 +1,177 @@
+---
+title: "eda project in R"
+output: word_document
+date: "2023-12-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Preparing the Dataset
+```{r}
+library(MASS)
+library(dplyr)
+library(tibble)
+library(ggplot2)
+library(class)
+
+data <- read.csv("C:/Users/vupha/Downloads/Short-Term_Occupational_Employment_Projections.csv")
+
+View(data)
+```
+
+## Visualizations:
+
+## 2.1 - Entry Level Education for Jobs in California
+```{r}
+table(data$Entry.Level.Education)
+table(data$Entry.Level.Education)/nrow(data)
+barplot(table(data$Entry.Level.Education),
+        main = "What is the entry level of education for jobs in California",
+        xlab = "Entry Level Education", ylab = "Frequency",
+        col = c("seagreen1", "indianred1", "yellow", "royalblue1", "pink", "purple", "paleturquoise", "goldenrod1", "red4"),
+        legend = rownames(data$Entry.Level.Education),
+        cex.names = 1.2, cex.axis = 1.2, cex.lab = 1.2,
+)
+```
+  Based on the figure, most jobs require some type of degree from their employees with most requiring a college-level degree or higher. Despite this, the most common requirement Californian jobs require is just a high school diploma or a degree of equivalent value, totaling approximately 250 different jobs. The second most common requirement is a bachelor's degree by around 150 jobs, and surprisingly followed by just under 100 jobs not requiring any formal educational credentials. Despite this, and ignoring N/A values, it can be extrapolated that the higher the difficulty of the credentials, the fewer it is required.
+  
+## 2.2 - Median Wage: Hourly vs Annual
+```{r}
+ggplot(data, aes(Median.Hourly.Wage)) +
+  geom_histogram(bin = 30, fill = "royalblue4", color = "gold2") +
+  labs(x = "Median Hourly Wage", y = "Frequency")
+
+ggplot(data, aes(Median.Annual.Wage)) +
+  geom_histogram(bin = 30, fill = "royalblue4", color = "gold2") +
+  labs(x = "Median Annual Wage", y = "Frequency")
+```
+
+  The two figures are histograms of the median hourly wage and median annual wage
+of different jobs in California, respectively. While not entirely the same, both histograms do exhibit similar patterns. It can also be noted that the most jobs have a median hourly wage of just under $25, coinciding with a median annual wage of just below $50000. 
+
+## Clustering Model:
+
+# 3.1 - Hierarchichal Clustering
+```{r}
+data_dendro <- select(data, "Base.Quarter.Employment.Estimate", "Projected.Quarter.Employment.Estimate", "Exits", "Transfers", "Total.Job.Openings")
+scale_data <- scale(data_dendro)
+dist_data <- dist(scale_data, "manhattan")
+hclust_data <- hclust(dist_data, "complete")
+plot(hclust_data, sub = F, hang = -1)
+options(scipen = 200)
+```
+  With the variety of jobs offered in California to choose from, it is important to understand how stable the economy of each job is. The purpose of the hierarchical clustering model is to divide the 755 different jobs offered into groups based on their economic stability. In order to get desired results, as shown by the dendrogram in the above figure, 5 variables are chosen: Base.Quarter.Employment.Estimate, Projected.Quarter.Employment.Estimate, Exits, Transfers, and Total.Job.Openings. From the dendrogram, the business employment cycles of Californian jobs can be distributed into six distinct groups based on the level of stability. From there, the groups are used in hierarchical clustering.
+  
+## 3.2 - Scatter plots of the hierarchichal clustering   
+```{r}
+cutree_data <- cutree(hclust_data, k = 6)
+
+## length for based on each unique value of cutree_customer
+for (i in 1:length(unique(cutree_data))){
+  if (i == 1){
+    plot(data_dendro[which(cutree_data == i), c("Base.Quarter.Employment.Estimate", "Projected.Quarter.Employment.Estimate")],
+         xlim = c(min(data_dendro$Base.Quarter.Employment.Estimate), max(data_dendro$Base.Quarter.Employment.Estimate)),
+         ylim = c(min(data_dendro$Projected.Quarter.Employment.Estimate), max(data_dendro$Projected.Quarter.Employment.Estimate)))
+  } else {
+    points(data_dendro[which(cutree_data == i), c("Base.Quarter.Employment.Estimate", "Projected.Quarter.Employment.Estimate")], col = i)
+  }
+}
+
+for (i in 1:length(unique(cutree_data))){
+  if (i == 1){
+    plot(data_dendro[which(cutree_data == i), c("Exits", "Transfers")],
+         xlim = c(min(data_dendro$Exits), max(data_dendro$Exits)),
+         ylim = c(min(data_dendro$Transfers), max(data_dendro$Transfers)))
+  } else {
+    points(data_dendro[which(cutree_data == i), c("Exits", "Transfers")], col = i)
+  }
+}
+```
+  Going more in depth with the data provided from hierarchical clustering, the scatter plot from the 1st figure reflect the estimate between the base quarter employment and the projected quarter employment, showing that on average, the base quarter employment is less than the projected quarter employment except for one where the opposite occurred. A similar pattern can be seen in the 2nd figure, which reflects the relationship between the number of employees quitting and the number of employees transferring into the job. On average, there are more transfers compared to exits except for one where the opposite also occurred. 
+  
+## Regression Model:
+
+## 4.1 - Pairs Clustering
+
+  To start with the regression model, a pairs clustering model is needed to figure out which specific terms (interaction terms, polynomial, etc.) to use based on the line of best fit of the relationship between each variable. To get the appropriate dataset to us to create the pairs clustering model, categorical sample units and N/A values needed to be removed. This ensures that the pairs clustering is based on an adjusted dataset with more sensible variables. Below is figure 7, the pairs model of an adjusted dataset.
+
+```{r}
+data_pairs <- select(data, -"Area.Type", -"Area.Name", -"Period", -"SOC.Level", -"Occupational.Title", -"Standard.Occupational.Classification..SOC.", -"Numeric.Change", -"Percentage.Change", -"Work.Experience")
+na.omit(data_pairs)
+data_pairs$Occupational.Title <- as.factor(data_pairs$Entry.Level.Education)
+data_pairs$Entry.Level.Education <- as.factor(data_pairs$Entry.Level.Education)
+data_pairs$Job.Training <- as.factor(data_pairs$Job.Training)
+str(data_pairs)
+pairs(data_pairs)
+```
+
+## 4.2 - Linear Regression Model
+
+  Hierarchical clustering can only be used to compare two variables with one another to see how the numbers might relate. Nothing more can be inferred from the results of clustering, like whether they might affect each other and how significant their relationship is. The linear regression model shown below was created to solve this problem. 	
+  
+  The linear regression model uses the Median.Annual.Wage variable as the response variable and comparing it with the predictor variables from a revised short-term occupational employment projections dataset. Overall, this model has an adjusted R-squared value of 0.815 (81.5%), meaning that the estimations of the model accounts for 81.5% variability in the relationship between the response variable and the predictors. In the context of the Median.Annual.Wage variable, it can be inferred that the base quarter employment estimate, median hourly wage, entry level education of either Bachelor’s degree, Doctoral, Highschool diploma, and jobs with internship/residency trainings significantly impacts the response variable. Based on the coefficient of each variable of significance, the base quarter employment estimate, median hourly wage, entry level education of either Bachelor’s degree or Doctoral all have a positive relationship with the response variable, whereas jobs with internship/residency trainings or only need high school diplomas or no formal education credentials would decrease the mean annual wage as they have a negative relationship.
+
+```{r}
+data_lm <- lm(Median.Annual.Wage~., data_pairs)
+summary(data_lm)
+```
+
+## Classification Model:
+
+## 5.1 - Model Set-up
+
+  To set up the classification models, all the categorical variables would need to be removed. Afterwards, the dataset is split into three different datasets, a test set, a training set, and a validation set, each with the purpose of testing various aspects of the dataset for classification and making sure that the results line up with each other.
+
+```{r}
+data_classification <- select(data, -"Area.Type", -"Area.Name", -"Period", -"SOC.Level", -"Occupational.Title", -"Standard.Occupational.Classification..SOC.", - "Entry.Level.Education", -"Work.Experience", -"Job.Training")
+data_classification <- na.omit(data_classification)
+
+dataset_index <- sample(1:nrow(data_classification), 0.8*nrow(data_classification))
+dataset <- data_classification[dataset_index, ]
+
+testset_index <- setdiff(1:nrow(data_classification), dataset_index)
+testset <- data_classification[testset_index, ]
+
+trainingindex <- sample(dataset_index, 0.8*length(dataset_index))
+trainingset <- data_classification[trainingindex, ]
+
+validationindex <- setdiff(dataset_index, 0.8*length(dataset_index))
+validationset <- data_classification[validationindex, ]
+```
+
+```{r}
+K_list <- 1:15
+MAE <- 0
+for (k in K_list){
+  knn_pred <- knn(trainingset[, -which(colnames(trainingset) == "Total.Job.Openings")],
+                  validationset[, -which(colnames(validationset) == "Total.Job.Openings")],
+                  trainingset[, "Total.Job.Openings"],
+                  k=k)
+  MAE <- cbind(MAE, mean(abs(as.numeric(as.character(knn_pred)) - validationset$Total.Job.Openings)))
+}
+plot(K_list, MAE[-1],
+     xlab = "K", ylab = "MAE")
+summary(knn_pred)
+```
+
+  The above figure is a k nearest neighbor regression model which uses the training set and the validation set to figure out the k value (in this case k = 1) which best illustrates the closest distance between the Total.Job.Openings of different jobs as it is the k value with the least discrepancies. 
+  
+## 5.2 - The Classification Model
+
+  For the next step of the classification model, the variable Job.Training had to be adjusted to be a binary variable for classification. In this case, a value of 1 in Job.Training would mean that the job offered training whereas the value of 0 would mean that there was not any training offered by the company. Based on the KNN – classification model in figure 10, the threshold of k = 1 would yield the highest accuracy of just under 100%. Comparing it with the validation set and training set (with roughly 75% and 85% accuracy respectively), it can be concluded that this method is the most efficient method. The results from the KNN – classification declares that out of the total 604 jobs (with 151 jobs having data that aren’t sensible for classification), 282 companies had a value of 0, meaning that they didn’t offer job trainings, and 322 jobs had a value of 1, meaning that they offered some kind of training for their employees.
+
+```{r}
+Acc <- 0
+for (k in K_list){
+  knn_pred <- knn(trainingset,
+                  validationset,
+                  trainingset$Total.Job.Openings,
+                  k=k)
+  conf_mat <- table(validationset$Total.Job.Openings, knn_pred)
+  Acc <- c(Acc, sum(diag(conf_mat))/sum(conf_mat))
+}
+summary(knn_pred)
+plot(K_list, Acc[-1], ylab = "Accuracy")
+```
