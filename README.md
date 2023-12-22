@@ -12,3 +12,6 @@ Using R and RStudio, this report will go more in depth, classifying, showing the
 You can access the data [here](https://catalog.data.gov/dataset/short-term-occupational-employment-projections/resource/9628b1ce-9fed-40b2-bf76-67aae817e793)
 
 Or you can download the csv directly [here](https://data.edd.ca.gov/api/views/guh4-bakw/rows.csv?accessType=DOWNLOAD)
+
+## Analysis
+The analysis can be found in the R Markdown File: https://github.com/duyanhh4/Exploratory-Data-Analysis-in-R/blob/main/EDA%20project%20in%20R.Rmd
