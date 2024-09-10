@@ -13,7 +13,12 @@ You can access the data [here](https://catalog.data.gov/dataset/short-term-occup
 
 Or you can download the csv directly [here](https://data.edd.ca.gov/api/views/guh4-bakw/rows.csv?accessType=DOWNLOAD)
 
-## Analysis
-The analysis can be found in the R Markdown File: 
+## Code
+The code can be found in the R Markdown File: 
 
 https://github.com/duyanhh4/Exploratory-Data-Analysis-in-R/blob/main/EDA%20project%20in%20R.Rmd
+
+## Analysis
+The analysis of the short-term occupational employment projections report can be found the in document in the branch below:
+
+https://github.com/duyanhh4/Exploratory-Data-Analysis-in-R/blob/main/Regression%20Analysis%20in%20R.docx
